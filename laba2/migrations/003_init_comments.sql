@@ -1,9 +1,0 @@
-CREATE TABLE IF NOT EXISTS Comments (
-  id        INTEGER PRIMARY KEY,
-  requestId INTEGER NOT NULL,
-  userId    INTEGER NOT NULL,
-  body      TEXT    NOT NULL,
-  createdAt TEXT    NOT NULL,
-  FOREIGN KEY (requestId) REFERENCES Requests(id) ON DELETE CASCADE,
-  FOREIGN KEY (userId)    REFERENCES Users(id)    ON DELETE RESTRICT
-);

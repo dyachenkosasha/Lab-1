@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS Users (
-  id        INTEGER PRIMARY KEY,
-  email     TEXT    NOT NULL UNIQUE,
-  name      TEXT    NOT NULL,
-  createdAt TEXT    NOT NULL
-);

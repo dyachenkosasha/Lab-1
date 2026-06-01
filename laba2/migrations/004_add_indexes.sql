@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_requests_userId ON Requests(userId);
