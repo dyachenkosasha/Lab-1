@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Сервіс «репорт вразливості» для навчальних проектів</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h1>Сервіс «репорт вразливості» для навчальних проектів</h1>
+
+<div id="notice"></div>
+
+<main class="layout">
+  <section class="left-panel">
+    <h2 id="formTitle">Create Report</h2>
+
+    <form id="createForm" novalidate>
+
+      <input type="hidden" id="editId">
+
+      <div class="field">
+        <label for="titleInput">Title</label>
+        <input id="titleInput" type="text">
+        <div class="error-text" id="titleError"></div>
+      </div>
+
+      <div class="field">
+        <label for="userIdInput">User ID</label>
+        <input id="userIdInput" type="number">
+        <div class="error-text" id="userIdError"></div>
+      </div>
+
+      <div class="field">
+        <label for="severityInput">Severity (1-5)</label>
+        <input id="severityInput" type="number">
+        <div class="error-text" id="severityError"></div>
+      </div>
+
+      <div class="field">
+        <label for="statusSelect">Status</label>
+        <select id="statusSelect">
+          <option value="">Select status</option>
+          <option value="Open">Open</option>
+          <option value="In progress">In progress</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <div class="error-text" id="statusError"></div>
+      </div>
+
+      <div class="buttons">
+        <button type="submit" id="submitBtn">Save</button>
+        <button type="button" id="resetBtn">Reset</button>
+      </div>
+
+    </form>
+  </section>
+
+  <section class="right-panel">
+    <h2>Reports List</h2>
+
+    <div class="field">
+      <label for="filterSelect">Filter by Status</label>
+      <select id="filterSelect">
+        <option value="">Show all</option>
+        <option value="Open">Open</option>
+        <option value="In progress">In progress</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+    </div>
+
+    <div id="listStatus"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>User ID</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
