@@ -3,21 +3,28 @@ export interface CreateUserDto {
   email: string;
 }
 
-export function validateUser(dto: CreateUserDto) {
-  const errors = [];
+export interface UpdateUserDto {
+  name: string;
+}
+
+export function validateCreateUser(dto: CreateUserDto): string[] {
+  const errors: string[] = [];
 
   if (!dto.name || dto.name.trim() === "") {
-    errors.push({
-      field: "name",
-      message: "Name required"
-    });
+    errors.push("name is required");
+  }
+  if (!dto.email || !dto.email.includes("@")) {
+    errors.push("email must be a valid email address");
   }
 
-  if (!dto.email || !dto.email.includes("@")) {
-    errors.push({
-      field: "email",
-      message: "Invalid email"
-    });
+  return errors;
+}
+
+export function validateUpdateUser(dto: UpdateUserDto): string[] {
+  const errors: string[] = [];
+
+  if (!dto.name || dto.name.trim() === "") {
+    errors.push("name is required");
   }
 
   return errors;

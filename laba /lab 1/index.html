@@ -9,20 +9,29 @@
 
 <h1>Сервіс «репорт вразливості» для навчальних проектів</h1>
 
+<div id="notice"></div>
+
 <main class="layout">
   <section class="left-panel">
-    <h2>Create Report</h2>
+    <h2 id="formTitle">Create Report</h2>
 
     <form id="createForm" novalidate>
+      <input type="hidden" id="editId">
 
       <div class="field">
-        <label for="usersInput">Users</label>
-        <input id="usersInput" type="text">
-        <div class="error-text" id="usersError"></div>
+        <label for="titleInput">Title</label>
+        <input id="titleInput" type="text">
+        <div class="error-text" id="titleError"></div>
       </div>
 
       <div class="field">
-        <label for="severityInput">Severity</label>
+        <label for="userIdInput">User ID</label>
+        <input id="userIdInput" type="number">
+        <div class="error-text" id="userIdError"></div>
+      </div>
+
+      <div class="field">
+        <label for="severityInput">Severity (1-5)</label>
         <input id="severityInput" type="number">
         <div class="error-text" id="severityError"></div>
       </div>
@@ -39,12 +48,47 @@
       </div>
 
       <div class="buttons">
-        <button type="submit">Save</button>
+        <button type="submit" id="submitBtn">Save</button>
         <button type="button" id="resetBtn">Reset</button>
       </div>
-
     </form>
+
+    <hr>
+
+    <h2>Users List</h2>
+
+    <div id="userFormContainer">
+      <h3 id="userFormTitle">Add User</h3>
+      <div class="field">
+        <label for="userNameInput">Name</label>
+        <input id="userNameInput" type="text" placeholder="Name">
+        <div class="error-text" id="userNameError"></div>
+      </div>
+      <div class="field">
+        <label for="userEmailInput">Email</label>
+        <input id="userEmailInput" type="email" placeholder="Email">
+        <div class="error-text" id="userEmailError"></div>
+      </div>
+      <input type="hidden" id="editUserId">
+      <div class="buttons">
+        <button type="button" id="saveUserBtn">Add</button>
+        <button type="button" id="cancelUserBtn" style="display:none;">Cancel</button>
+      </div>
+    </div>
+
+    <table id="usersTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody"></tbody>
+    </table>
   </section>
+
   <section class="right-panel">
     <h2>Reports List</h2>
 
@@ -58,11 +102,14 @@
       </select>
     </div>
 
+    <div id="listStatus"></div>
+
     <table>
       <thead>
         <tr>
           <th>#</th>
-          <th>Users</th>
+          <th>Title</th>
+          <th>User ID</th>
           <th>Severity</th>
           <th>Status</th>
           <th>Created</th>
@@ -72,10 +119,96 @@
       <tbody id="tasksTableBody"></tbody>
     </table>
 
+    <div id="commentsSection" style="display:none; margin-top:20px;">
+      <h3 id="commentsTitle">Comments</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>User ID</th>
+            <th>Comment</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="commentsTableBody"></tbody>
+      </table>
+      <div style="margin-top:10px;">
+        <input type="hidden" id="editCommentId">
+        <input id="commentInput" type="text" placeholder="Add comment...">
+        <button id="addCommentBtn">Add</button>
+        <button id="cancelCommentBtn" style="display:none;">Cancel</button>
+      </div>
+    </div>
   </section>
-
 </main>
 
-<script src="app.js"></script>
+<div style="margin: 20px; background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+  <h2>Top Commenters</h2>
+  <div class="field" style="flex-direction: row; align-items: center; gap: 10px;">
+    <label for="topSeverityInput">Severity (1-5)</label>
+    <input id="topSeverityInput" type="number" min="1" max="5" style="width: 60px;">
+    <button id="loadTopBtn">Load</button>
+  </div>
+  <div id="topCommentersResult"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+<script type="module">
+  const API_BASE = "http://localhost:3000/api/v1";
+
+  document.getElementById("loadTopBtn").addEventListener("click", async () => {
+    const sev = document.getElementById("topSeverityInput").value;
+    const container = document.getElementById("topCommentersResult");
+    if (!sev || sev < 1 || sev > 5) {
+      container.innerHTML = `<span style="color:red;font-size:12px;">Severity must be 1–5</span>`;
+      return;
+    }
+    container.textContent = "Завантаження...";
+    try {
+      const res = await fetch(`${API_BASE}/stats/top-commenters/${sev}`);
+      const json = await res.json();
+      renderTopCommenters(json.data, sev);
+    } catch (e) {
+      container.innerHTML = `<span style="color:red;font-size:12px;">Помилка запиту до сервера</span>`;
+    }
+  });
+
+  function renderTopCommenters(data, sev) {
+    const container = document.getElementById("topCommentersResult");
+    if (!data || data.length === 0) {
+      container.textContent = `Немає коментарів для severity ${sev}`;
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>User ID</th>
+          <th>Comments (severity ${sev})</th>
+          <th>Best Report</th>
+          <th>Best Report Comments</th>
+        </tr>
+      </thead>
+    `;
+    const tbody = document.createElement("tbody");
+    data.forEach((item, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${item.userId}</td>
+        <td>${item.commentCountBySeverity}</td>
+        <td>${item.bestReport ? item.bestReport.title : "–"}</td>
+        <td>${item.bestReport ? item.bestReport.commentCount : "–"}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.textContent = "";
+    container.appendChild(table);
+  }
+</script>
 </body>
 </html>

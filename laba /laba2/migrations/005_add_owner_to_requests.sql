@@ -1,0 +1,1 @@
+ALTER TABLE Requests ADD COLUMN ownerUserId INTEGER;

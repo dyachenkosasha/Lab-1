@@ -1,217 +1,152 @@
-# Лабораторна робота №2 — Бекенд без БД
-
-REST API для сервісу «Репорт вразливості» навчальних проектів.
+# Лабораторна робота №4 — Інтеграція фронтенду з бекендом
 
 ## Запуск
 
+### Бекенд
 ```bash
-# 1. Встановити залежності
+cd laba2
 npm install
-
-# 2. Запустити в режимі розробки (з авто-перезапуском при зміні файлів)
 npm run dev
-
-# 3. Зібрати TypeScript → JavaScript
-npm run build
-
-# 4. Запустити зібрану версію
-npm start
 ```
 
-Сервер запускається на `http://localhost:3000`.
-
-## Перевірка якості коду
-
+### Фронтенд
+В окремому терміналі:
 ```bash
-npm run lint     # ESLint: пошук помилок
-npm run format   # Prettier: форматування
+cd "lab 1"
+npm install
+npm run watch
 ```
 
----
-
-## Реалізовані сутності
-
-| Сутність | Базовий маршрут  | Поля |
-|----------|-----------------|------|
-| Users    | `/api/users`    | `id`, `username`, `email`, `createdAt` |
-| Reports  | `/api/reports`  | `id`, `users`, `severity` (1–5), `status` (Open/In progress/Resolved), `createdAt` |
-
----
-
-## Приклади запитів (curl)
-
-> Флаг `-i` додає у вивід HTTP-статус і заголовки.
-
-### Health check
-
+В ще одному терміналі:
 ```bash
-curl -i http://localhost:3000/health
+cd "lab 1"
+npm run serve
 ```
 
----
+Відкрити в браузері: `http://localhost:5500`
 
-### USERS
+Бекенд працює на: `http://localhost:3000`
 
-#### GET /api/users — список всіх користувачів
-```bash
-curl -i http://localhost:3000/api/users
-```
-Відповідь `200`:
-```json
-{ "items": [...], "total": 2 }
-```
+## Як це працює
 
-#### POST /api/users — створити користувача
-```bash
-curl -i -X POST http://localhost:3000/api/users \
-  -H "Content-Type: application/json" \
-  -d "{\"username\": \"Olena\", \"email\": \"olena@example.com\"}"
-```
-Відповідь `201`:
-```json
-{ "id": "uuid...", "username": "Olena", "email": "olena@example.com", "createdAt": "..." }
-```
+Фронтенд і бекенд запускаються як два окремі процеси на різних портах.
+Фронтенд звертається до бекенду через `fetch()` на адресу `http://localhost:3000/api/v1/`.
+CORS на бекенді дозволяє запити з `http://localhost:5500`.
 
-#### POST /api/users — помилка валідації (400)
-```bash
-curl -i -X POST http://localhost:3000/api/users \
-  -H "Content-Type: application/json" \
-  -d "{\"username\": \"A\"}"
-```
-Відповідь `400`:
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid request body",
-    "details": [
-      { "field": "username", "message": "Username must be at least 2 characters" },
-      { "field": "email", "message": "Email must be at least 5 characters" }
-    ]
-  }
-}
-```
+## Версійність API
 
-#### GET /api/users/:id — один користувач
-```bash
-curl -i http://localhost:3000/api/users/<ID>
-```
+Всі маршрути мають префікс `/api/v1/`.
+Breaking changes (перейменування або видалення полів) допускаються тільки при введенні нової версії `/api/v2/`.
+Нові необов'язкові поля можна додавати в `/api/v1/` без версійного підвищення.
 
-#### GET /api/users/:id — не існує (404)
-```bash
-curl -i http://localhost:3000/api/users/nonexistent-id
-```
+## Правила сумісності DTO
 
-#### PUT /api/users/:id — оновити
-```bash
-curl -i -X PUT http://localhost:3000/api/users/<ID> \
-  -H "Content-Type: application/json" \
-  -d "{\"username\": \"Olena Updated\", \"email\": \"new@example.com\"}"
-```
+1. Не можна перейменовувати або видаляти поля які вже використовує фронтенд.
+2. Нові поля додаються як необов'язкові — старий фронтенд просто їх ігнорує.
+3. Не можна міняти тип поля (наприклад `id: number` → `id: string`).
 
-#### DELETE /api/users/:id — видалити
-```bash
-curl -i -X DELETE http://localhost:3000/api/users/<ID>
-```
-Відповідь: `204 No Content` (без тіла)
-
----
-
-### REPORTS
-
-#### GET /api/reports — всі репорти
-```bash
-curl -i http://localhost:3000/api/reports
-```
-
-#### GET /api/reports — фільтрація за статусом
-```bash
-curl -i "http://localhost:3000/api/reports?status=Open"
-```
-
-#### GET /api/reports — сортування
-```bash
-curl -i "http://localhost:3000/api/reports?sortBy=severity&sortDir=desc"
-```
-
-#### GET /api/reports — пагінація
-```bash
-curl -i "http://localhost:3000/api/reports?page=1&pageSize=5"
-```
-
-#### GET /api/reports — комбінація всіх параметрів
-```bash
-curl -i "http://localhost:3000/api/reports?status=Open&sortBy=severity&sortDir=asc&page=1&pageSize=10"
-```
-
-#### POST /api/reports — створити репорт
-```bash
-curl -i -X POST http://localhost:3000/api/reports \
-  -H "Content-Type: application/json" \
-  -d "{\"users\": \"admin\", \"severity\": 3, \"status\": \"Open\"}"
-```
-
-#### POST /api/reports — невалідний severity (400)
-```bash
-curl -i -X POST http://localhost:3000/api/reports \
-  -H "Content-Type: application/json" \
-  -d "{\"users\": \"admin\", \"severity\": 10, \"status\": \"Open\"}"
-```
-
-#### PUT /api/reports/:id — оновити репорт
-```bash
-curl -i -X PUT http://localhost:3000/api/reports/<ID> \
-  -H "Content-Type: application/json" \
-  -d "{\"users\": \"admin\", \"severity\": 5, \"status\": \"Resolved\"}"
-```
-
-#### DELETE /api/reports/:id
-```bash
-curl -i -X DELETE http://localhost:3000/api/reports/<ID>
-```
-
----
-
-## Архітектура проекту
+## Схема БД
 
 ```
-src/
-├── index.ts                         ← запуск сервера на порту
-├── app.ts                           ← налаштування Express + middleware
-├── routes/
-│   ├── users.routes.ts              ← зв'язок URL → контролер
-│   └── reports.routes.ts
-├── controllers/
-│   ├── users.controller.ts          ← читає req, викликає сервіс, формує res
-│   └── reports.controller.ts
-├── services/
-│   ├── users.service.ts             ← бізнес-логіка + валідація
-│   └── reports.service.ts
-├── repositories/
-│   ├── users.repository.ts          ← зберігання в пам'яті (масив)
-│   └── reports.repository.ts
-├── dtos/
-│   ├── users.dto.ts                 ← TypeScript-контракти запитів/відповідей
-│   └── reports.dto.ts
-└── middleware/
-    ├── request-logger.middleware.ts  ← логування кожного запиту
-    └── error-handler.middleware.ts   ← централізована обробка помилок
+Users
+  id        INTEGER PRIMARY KEY
+  email     TEXT NOT NULL UNIQUE
+  name      TEXT NOT NULL
+  createdAt TEXT NOT NULL
+
+Requests
+  id        INTEGER PRIMARY KEY
+  userId    INTEGER NOT NULL → Users(id) ON DELETE CASCADE
+  title     TEXT NOT NULL
+  severity  INTEGER NOT NULL CHECK (severity >= 1 AND severity <= 5)
+  status    TEXT NOT NULL CHECK (status IN ('Open','In progress','Resolved'))
+  createdAt TEXT NOT NULL
+
+Comments
+  id        INTEGER PRIMARY KEY
+  requestId INTEGER NOT NULL → Requests(id) ON DELETE CASCADE
+  userId    INTEGER NOT NULL → Users(id) ON DELETE RESTRICT
+  body      TEXT NOT NULL
+  createdAt TEXT NOT NULL
 ```
 
-## HTTP-коди стану
+## Ендпоінти
 
-| Код | Ситуація |
-|-----|---------|
-| 200 | Успішне читання або оновлення |
-| 201 | Успішне створення ресурсу (POST) |
-| 204 | Успішне видалення (без тіла відповіді) |
-| 400 | Помилка валідації — некоректні дані |
-| 404 | Ресурс не знайдено |
-| 409 | Конфлікт (наприклад, email вже існує) |
-| 500 | Неочікувана помилка сервера |
+### Users
+| Метод | URL | Опис |
+|---|---|---|
+| GET | /api/v1/users | Список користувачів |
+| GET | /api/v1/users/:id | Користувач за id |
+| POST | /api/v1/users | Створити користувача |
+| PUT | /api/v1/users/:id | Оновити ім'я |
+| DELETE | /api/v1/users/:id | Видалити користувача |
 
-## Додаткові REST-можливості (рівень «відмінно»)
+### Requests
+| Метод | URL | Опис |
+|---|---|---|
+| GET | /api/v1/requests | Список заявок |
+| GET | /api/v1/requests/with-authors | Заявки з авторами (JOIN) |
+| GET | /api/v1/requests/stats | Кількість по статусах (COUNT) |
+| GET | /api/v1/requests/search?q= | Пошук за заголовком |
+| GET | /api/v1/requests/severity/:severity | Заявки по severity |
+| GET | /api/v1/requests/:id | Заявка за id |
+| POST | /api/v1/requests | Створити заявку |
+| PUT | /api/v1/requests/:id | Оновити заявку |
+| DELETE | /api/v1/requests/:id | Видалити заявку |
+| GET | /api/v1/requests/:id/comments | Коментарі до заявки |
+| POST | /api/v1/requests/:id/comments | Додати коментар |
 
-1. **Фільтрація** — `GET /api/reports?status=Open`
-2. **Сортування** — `GET /api/reports?sortBy=severity&sortDir=desc`
-3. **Пагінація** — `GET /api/reports?page=1&pageSize=10`
+### Comments
+| Метод | URL | Опис |
+|---|---|---|
+| DELETE | /api/v1/comments/:id | Видалити коментар |
+
+## Сценарії перевірки
+
+### 1. Перевірка CORS
+Відкрити `http://localhost:5500` в браузері.
+Відкрити DevTools → Network.
+Завантажити сторінку — має з'явитись запит до `/api/v1/requests` зі статусом 200.
+Якщо є CORS помилка — перевірити що бекенд запущений і порт 5500 є в whitelist.
+
+### 2. Перевірка станів інтерфейсу
+
+**Loading:**
+Відкрити сторінку — на секунду має з'явитись "Завантаження...".
+
+**Empty:**
+Очистити базу або відфільтрувати по статусу якого немає — має з'явитись "Поки що немає записів."
+
+**Error:**
+Зупинити бекенд і оновити сторінку — має з'явитись повідомлення про помилку мережі.
+
+### 3. Перевірка CRUD
+
+**Створення:**
+```
+Title: Test Request
+User ID: 1
+Severity: 3
+Status: Open
+```
+Натиснути Save — запис має з'явитись в таблиці.
+
+**Оновлення:**
+Натиснути Edit на записі — форма заповниться даними.
+Змінити Title → натиснути Update — таблиця оновиться.
+
+**Видалення:**
+Натиснути Delete → підтвердити → запис зникне з таблиці.
+
+### 4. Перевірка валідації → 400
+Залишити поля порожніми і натиснути Save.
+Під кожним полем має з'явитись повідомлення про помилку.
+
+### 5. Перевірка таймауту
+Зупинити бекенд.
+Натиснути Save або оновити сторінку.
+Через 10 секунд має з'явитись повідомлення "Запит перевищив час очікування".
+
+### 6. Перевірка preflight OPTIONS
+Відкрити DevTools → Network.
+Натиснути Save (POST запит).

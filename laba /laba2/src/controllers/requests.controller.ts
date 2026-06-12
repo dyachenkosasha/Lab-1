@@ -1,67 +1,101 @@
 import { Request, Response, NextFunction } from "express";
-
 import service from "../services/requests.service";
-import { validateRequest } from "../dtos/requests.dto";
+import { validateCreateRequest, validateUpdateRequest } from "../dtos/requests.dto";
 
-export const getAll = (
-  req: Request,
-  res: Response
-) => {
-  const items = service.getAll();
-
-  res.json({ items });
+export const getAll = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.query.userId ? Number(req.query.userId) : undefined;
+    const status = req.query.status as string | undefined;
+    const sort = req.query.sort as string | undefined;
+    const order = req.query.order as string | undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+    const requests = await service.getAll({ userId, status, sort, order, limit });
+    res.json({ data: requests, meta: { count: requests.length } });
+  } catch (err) { next(err); }
 };
 
-export const getById = (
-  req: Request,
-  res: Response
-) => {
-  const id = Number(req.params.id);
-
-  const request = service.getById(id);
-
-  res.json(request);
+export const getById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "id must be a number" });
+    const request = await service.getById(id);
+    res.json({ data: request });
+  } catch (err) { next(err); }
 };
 
-export const create = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const errors = validateRequest(req.body);
-
-  if (errors.length > 0) {
-    return next({
-      status: 400,
-      code: "VALIDATION_ERROR",
-      message: "Invalid data",
-      details: errors
-    });
-  }
-
-  const request = service.create(req.body);
-
-  res.status(201).json(request);
+export const getWithAuthors = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const requests = await service.getWithAuthors();
+    res.json({ data: requests, meta: { count: requests.length } });
+  } catch (err) { next(err); }
 };
 
-export const update = (
-  req: Request,
-  res: Response
-) => {
-  const id = Number(req.params.id);
-
-  const request = service.update(id, req.body);
-
-  res.json(request);
+export const getStats = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = await service.getStatusCounts();
+    res.json({ data: stats });
+  } catch (err) { next(err); }
 };
 
-export const remove = (
-  req: Request,
-  res: Response
-) => {
-  const id = Number(req.params.id);
+export const search = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const q = String(req.query.q ?? "");
+    const requests = await service.searchByTitle(q);
+    res.json({ data: requests });
+  } catch (err) { next(err); }
+};
 
-  service.delete(id);
+export const getBySeverity = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const severity = Number(req.params.severity);
+    if (!Number.isFinite(severity) || severity < 1 || severity > 5) {
+      return res.status(400).json({ error: "severity must be between 1 and 5" });
+    }
+    const requests = await service.getBySeverity(severity);
+    res.json({ data: requests, meta: { count: requests.length } });
+  } catch (err) { next(err); }
+};
 
-  res.status(204).send();
+export const create = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const errors = validateCreateRequest(req.body);
+    if (errors.length > 0) return res.status(400).json({ error: errors.join(", ") });
+    const { userId, title, severity, status } = req.body;
+    const ownerUserId = req.user!.id;
+    const request = await service.create(
+      Number(userId),
+      ownerUserId,
+      title,
+      Number(severity),
+      status
+    );
+    res.status(201).json({ data: request });
+  } catch (err) { next(err); }
+};
+
+export const update = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "id must be a number" });
+    const errors = validateUpdateRequest(req.body);
+    if (errors.length > 0) return res.status(400).json({ error: errors.join(", ") });
+    const { title, severity, status } = req.body;
+    const request = await service.updateOwned(
+      id,
+      req.user!.id,
+      title,
+      Number(severity),
+      status
+    );
+    res.json({ data: request });
+  } catch (err) { next(err); }
+};
+
+export const remove = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "id must be a number" });
+    await service.delete(id, req.user!.id);
+    res.status(204).send();
+  } catch (err) { next(err); }
 };
